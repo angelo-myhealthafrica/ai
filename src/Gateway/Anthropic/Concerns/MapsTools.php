@@ -46,7 +46,9 @@ trait MapsTools
         $schema = $tool->schema(new JsonSchemaTypeFactory);
 
         $schemaArray = filled($schema)
-            ? (new ObjectSchema(schema: $schema, strict: $strict))->toSchema()
+            ? static::normalizeAnthropicSchema(
+                (new ObjectSchema(schema: $schema, strict: $strict))->toSchema()
+            )
             : [];
 
         return [

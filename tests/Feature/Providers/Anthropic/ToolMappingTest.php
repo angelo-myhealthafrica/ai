@@ -6,6 +6,7 @@ use Tests\Fixtures\Agents\NamedToolAgent;
 use Tests\Fixtures\Agents\ToolUsingAgent;
 use Tests\Fixtures\Tools\FixedNumberGenerator;
 use Tests\Fixtures\Tools\NonStrictTool;
+use Tests\Fixtures\Tools\NullableEnumTool;
 use Tests\Fixtures\Tools\RandomNumberGenerator;
 
 use function Laravel\Ai\agent;
@@ -127,6 +128,29 @@ test('tool without Strict attribute sends strict false and honors developer-decl
         return $tool['strict'] === false
             && $tool['input_schema']['required'] === ['query']
             && array_key_exists('limit', (array) $tool['input_schema']['properties']);
+    });
+});
+
+test('nullable enum property is rewritten to anyOf for Anthropic strict compiler', function () {
+    Http::fake([
+        'api.anthropic.com/*' => $this->fakeTextResponse('ok'),
+    ]);
+
+    agent(tools: [new NullableEnumTool])->prompt('Pick a country', provider: 'anthropic');
+
+    Http::assertSent(function ($request) {
+        $tool = collect($request->data()['tools'] ?? [])
+            ->firstWhere('name', 'NullableEnumTool');
+
+        $properties = (array) $tool['input_schema']['properties'];
+        $country = $properties['country'];
+
+        return ! isset($country['type'])
+            && ! isset($country['enum'])
+            && $country['anyOf'] === [
+                ['type' => 'string', 'enum' => ['Andorra', 'France']],
+                ['type' => 'null'],
+            ];
     });
 });
 
