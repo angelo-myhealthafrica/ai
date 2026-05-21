@@ -45,19 +45,19 @@ trait MapsTools
 
         $schema = $tool->schema(new JsonSchemaTypeFactory);
 
-        $inputSchema = ['type' => 'object', 'properties' => (object) []];
-
-        if (filled($schema)) {
-            $schemaArray = (new ObjectSchema(schema: $schema, strict: $strict))->toSchema();
-
-            $inputSchema['properties'] = (object) ($schemaArray['properties'] ?? []);
-            $inputSchema['required'] = $schemaArray['required'] ?? [];
-        }
+        $schemaArray = filled($schema)
+            ? (new ObjectSchema(schema: $schema, strict: $strict))->toSchema()
+            : [];
 
         return [
             'name' => ToolNameResolver::resolve($tool),
             'description' => (string) $tool->description(),
-            'input_schema' => $inputSchema,
+            'input_schema' => [
+                'type' => 'object',
+                'properties' => (object) ($schemaArray['properties'] ?? []),
+                'required' => $schemaArray['required'] ?? [],
+                'additionalProperties' => false,
+            ],
             'strict' => $strict,
         ];
     }
