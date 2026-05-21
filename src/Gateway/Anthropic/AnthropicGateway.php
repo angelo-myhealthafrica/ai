@@ -30,6 +30,7 @@ class AnthropicGateway implements Gateway
     use Concerns\MapsAttachments;
     use Concerns\MapsMessages;
     use Concerns\MapsTools;
+    use Concerns\NormalizesSchemas;
     use Concerns\ParsesTextResponses;
     use HandlesFailoverErrors;
     use InvokesTools;

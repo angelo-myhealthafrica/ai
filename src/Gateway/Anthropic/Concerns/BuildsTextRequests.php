@@ -39,7 +39,9 @@ trait BuildsTextRequests
             $body['output_config'] = [
                 'format' => [
                     'type' => 'json_schema',
-                    'schema' => (new ObjectSchema($schema))->toSchema(),
+                    'schema' => static::normalizeAnthropicSchema(
+                        (new ObjectSchema($schema))->toSchema()
+                    ),
                 ],
             ];
 
@@ -99,7 +101,9 @@ trait BuildsTextRequests
      */
     protected function buildStructuredOutputTool(array $schema): array
     {
-        $schemaArray = (new ObjectSchema($schema))->toSchema();
+        $schemaArray = static::normalizeAnthropicSchema(
+            (new ObjectSchema($schema))->toSchema()
+        );
 
         return [
             'name' => 'output_structured_data',
