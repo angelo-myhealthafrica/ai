@@ -3,7 +3,6 @@
 namespace Laravel\Ai\Gateway\Gemini\Concerns;
 
 use Illuminate\Support\Arr;
-use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Gateway\TextGenerationOptions;
 use Laravel\Ai\ObjectSchema;
 use Laravel\Ai\Providers\Provider;
@@ -83,7 +82,7 @@ trait BuildsTextRequests
             'topP' => $options?->topP,
         ]));
 
-        $providerOptions = $options?->providerOptions(Lab::tryFrom($provider->driver()) ?? $provider->driver()) ?? [];
+        $providerOptions = $options?->providerOptions($provider->driver()) ?? [];
 
         // Hoist keys that need to be passed at top level, as everything else is passed in generationConfig
         $topLevelKeys = ['cachedContent'];

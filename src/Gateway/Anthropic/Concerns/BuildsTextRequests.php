@@ -3,7 +3,6 @@
 namespace Laravel\Ai\Gateway\Anthropic\Concerns;
 
 use Illuminate\Support\Arr;
-use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Gateway\TextGenerationOptions;
 use Laravel\Ai\ObjectSchema;
 use Laravel\Ai\Providers\Provider;
@@ -34,7 +33,7 @@ trait BuildsTextRequests
 
         $mappedTools = filled($tools) ? $this->mapTools($tools, $provider) : [];
 
-        $providerOptions = $options?->providerOptions(Lab::Anthropic) ?? [];
+        $providerOptions = $options?->providerOptions($provider->driver()) ?? [];
 
         if (filled($schema) && $this->supportsNativeStructuredOutput($provider)) {
             $body['output_config'] = [

@@ -29,6 +29,16 @@ class Conversation extends Model
     protected $guarded = [];
 
     /**
+     * Get the messages for the conversation.
+     *
+     * @return HasMany<ConversationMessage, $this>
+     */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(ConversationMessage::class, 'conversation_id');
+    }
+
+    /**
      * Get the table associated with the model.
      */
     public function getTable(): string
@@ -37,10 +47,10 @@ class Conversation extends Model
     }
 
     /**
-     * Get the messages for the conversation.
+     * Get the database connection for the model.
      */
-    public function messages(): HasMany
+    public function getConnectionName(): ?string
     {
-        return $this->hasMany(ConversationMessage::class, 'conversation_id');
+        return config('ai.conversations.connection');
     }
 }

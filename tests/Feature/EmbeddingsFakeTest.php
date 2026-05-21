@@ -17,6 +17,30 @@ test('embeddings reject associative input array', function () {
     Embeddings::for(['first' => 'Hello world'])->generate();
 })->throws(InvalidArgumentException::class, 'Inputs to embed must be a list, not an associative array.');
 
+test('embeddings reject blank string inputs', function () {
+    Embeddings::fake();
+
+    Embeddings::for([''])->generate();
+})->throws(InvalidArgumentException::class, 'The input at index 0 must be a non-blank string.');
+
+test('embeddings reject whitespace-only string inputs', function () {
+    Embeddings::fake();
+
+    Embeddings::for([" \t\n"])->generate();
+})->throws(InvalidArgumentException::class, 'The input at index 0 must be a non-blank string.');
+
+test('embeddings reject non-string inputs', function () {
+    Embeddings::fake();
+
+    Embeddings::for([123])->generate();
+})->throws(InvalidArgumentException::class, 'The input at index 0 must be a non-blank string.');
+
+test('embeddings report the offending index for blank inputs', function () {
+    Embeddings::fake();
+
+    Embeddings::for(['valid', 'also valid', ''])->generate();
+})->throws(InvalidArgumentException::class, 'The input at index 2 must be a non-blank string.');
+
 describe('generating embeddings', function () {
     test('can fake embeddings', function () {
         Embeddings::fake();

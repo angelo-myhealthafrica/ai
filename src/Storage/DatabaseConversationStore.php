@@ -6,10 +6,13 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Laravel\Ai\Contracts\ConversationStore;
+use Laravel\Ai\Files\File;
 use Laravel\Ai\Messages\AssistantMessage;
 use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Messages\ToolResultMessage;
+use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\Data\ToolCall;
@@ -143,6 +146,12 @@ class DatabaseConversationStore implements ConversationStore
                 $toolResults = collect(json_decode($record->tool_results, true))->values();
 
                 if ($record->role === 'user') {
+                    $attachments = $this->rehydrateAttachments($record->attachments);
+
+                    if ($attachments->isNotEmpty()) {
+                        return [new UserMessage($record->content, $attachments)];
+                    }
+
                     return [new Message('user', $record->content)];
                 }
 
@@ -178,6 +187,30 @@ class DatabaseConversationStore implements ConversationStore
 
                 return [new AssistantMessage($record->content)];
             });
+    }
+
+    protected function rehydrateAttachments(string $attachments): Collection
+    {
+        $decoded = json_decode($attachments, true);
+
+        if (! is_array($decoded) || ! array_is_list($decoded)) {
+            throw new InvalidArgumentException('Stored conversation attachments must be a JSON array.');
+        }
+
+        if ($decoded === []) {
+            return collect();
+        }
+
+        return collect($decoded)
+            ->map(function (mixed $attachment) {
+                if (! is_array($attachment)) {
+                    throw new InvalidArgumentException('Stored conversation attachment entries must be objects.');
+                }
+
+                return File::fromArray($attachment);
+            })
+            ->filter()
+            ->values();
     }
 
     /**

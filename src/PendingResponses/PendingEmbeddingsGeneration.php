@@ -37,6 +37,8 @@ class PendingEmbeddingsGeneration
      * Create a new pending embeddings generation instance.
      *
      * @param  string[]  $inputs
+     *
+     * @throws InvalidArgumentException
      */
     public function __construct(protected array $inputs)
     {
@@ -46,6 +48,12 @@ class PendingEmbeddingsGeneration
 
         if (blank($inputs)) {
             throw new InvalidArgumentException('At least one input is required to generate embeddings.');
+        }
+
+        foreach ($inputs as $index => $input) {
+            if (! is_string($input) || blank($input)) {
+                throw new InvalidArgumentException("The input at index {$index} must be a non-blank string.");
+            }
         }
     }
 
@@ -113,6 +121,8 @@ class PendingEmbeddingsGeneration
 
     /**
      * Generate the embeddings.
+     *
+     * @throws FailoverableException if every configured provider fails to generate the embeddings.
      */
     public function generate(Lab|array|string|null $provider = null, ?string $model = null): EmbeddingsResponse
     {
