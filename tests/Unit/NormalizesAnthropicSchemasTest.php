@@ -231,3 +231,74 @@ test('constraints are stripped recursively from nested properties and items', fu
         ->and($normalized['properties']['tags'])->not->toHaveKey('maxItems')
         ->and($normalized['properties']['tags']['items'])->not->toHaveKey('maxLength');
 });
+
+test('unknown keywords are stripped silently', function () {
+    $normalized = AnthropicSchemaNormalizer::normalizeAnthropicSchema([
+        'type' => 'string',
+        'foo' => 'bar',
+        'x-vendor-extension' => ['anything'],
+        'readOnly' => true,
+        'examples' => ['a', 'b'],
+    ]);
+
+    expect($normalized)->toBe(['type' => 'string']);
+});
+
+test('oneOf is stripped and noted in the description', function () {
+    $normalized = AnthropicSchemaNormalizer::normalizeAnthropicSchema([
+        'type' => 'object',
+        'description' => 'A union.',
+        'oneOf' => [
+            ['type' => 'string'],
+            ['type' => 'integer'],
+        ],
+    ]);
+
+    expect($normalized)->not->toHaveKey('oneOf')
+        ->and($normalized['description'])->toContain('Must match exactly one of the listed schemas');
+});
+
+test('not keyword is stripped and noted in the description', function () {
+    $normalized = AnthropicSchemaNormalizer::normalizeAnthropicSchema([
+        'type' => 'string',
+        'not' => ['enum' => ['forbidden']],
+    ]);
+
+    expect($normalized)->not->toHaveKey('not')
+        ->and($normalized['description'])->toContain('Must not match a forbidden schema');
+});
+
+test('allowed keywords pass through untouched', function () {
+    $normalized = AnthropicSchemaNormalizer::normalizeAnthropicSchema([
+        'type' => 'object',
+        'title' => 'User',
+        'description' => 'A user.',
+        'properties' => [
+            'name' => ['type' => 'string', 'pattern' => '^[A-Z]+$'],
+            'role' => ['const' => 'admin'],
+            'status' => ['enum' => ['active', 'inactive'], 'default' => 'active'],
+        ],
+        'required' => ['name'],
+        'additionalProperties' => false,
+        '$defs' => ['Foo' => ['type' => 'string']],
+    ]);
+
+    expect($normalized['title'])->toBe('User')
+        ->and($normalized['description'])->toBe('A user.')
+        ->and($normalized['properties']['name']['pattern'])->toBe('^[A-Z]+$')
+        ->and($normalized['properties']['role']['const'])->toBe('admin')
+        ->and($normalized['properties']['status']['default'])->toBe('active')
+        ->and($normalized['required'])->toBe(['name'])
+        ->and($normalized['additionalProperties'])->toBeFalse()
+        ->and($normalized['$defs'])->toBe(['Foo' => ['type' => 'string']]);
+});
+
+test('additionalProperties true is coerced to false', function () {
+    $normalized = AnthropicSchemaNormalizer::normalizeAnthropicSchema([
+        'type' => 'object',
+        'properties' => ['name' => ['type' => 'string']],
+        'additionalProperties' => true,
+    ]);
+
+    expect($normalized['additionalProperties'])->toBeFalse();
+});
