@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Http;
 use Laravel\Ai\Providers\Tools\FileSearch;
 use Tests\Fixtures\Agents\NamedToolAgent;
 use Tests\Fixtures\Agents\ToolUsingAgent;
+use Tests\Fixtures\Tools\FixedNumberGenerator;
+use Tests\Fixtures\Tools\NonStrictTool;
+use Tests\Fixtures\Tools\RandomNumberGenerator;
 
 use function Laravel\Ai\agent;
 
@@ -83,5 +86,65 @@ test('empty schema still includes input schema with type object', function () {
         }
 
         return false;
+    });
+});
+
+test('tool with Strict attribute sends strict true to anthropic', function () {
+    Http::fake([
+        'api.anthropic.com/*' => $this->fakeTextResponse('42'),
+    ]);
+
+    agent(tools: [new RandomNumberGenerator])->prompt(
+        'Give me a random number',
+        provider: 'anthropic',
+    );
+
+    Http::assertSent(function ($request) {
+        $tool = collect($request->data()['tools'] ?? [])
+            ->firstWhere('name', 'RandomNumberGenerator');
+
+        return $tool['strict'] === true
+            && $tool['input_schema']['type'] === 'object'
+            && array_key_exists('min', (array) $tool['input_schema']['properties'])
+            && array_key_exists('max', (array) $tool['input_schema']['properties'])
+            && in_array('min', $tool['input_schema']['required'], true)
+            && in_array('max', $tool['input_schema']['required'], true);
+    });
+});
+
+test('tool without Strict attribute sends strict false and honors developer-declared required fields', function () {
+    Http::fake([
+        'api.anthropic.com/*' => $this->fakeTextResponse('ok'),
+    ]);
+
+    agent(tools: [new NonStrictTool])->prompt('Hi', provider: 'anthropic');
+
+    Http::assertSent(function ($request) {
+        $tool = collect($request->data()['tools'] ?? [])
+            ->firstWhere('name', 'NonStrictTool');
+
+        return $tool['strict'] === false
+            && $tool['input_schema']['required'] === ['query']
+            && array_key_exists('limit', (array) $tool['input_schema']['properties']);
+    });
+});
+
+test('tool with empty schema and Strict attribute still sends strict true', function () {
+    Http::fake([
+        'api.anthropic.com/*' => $this->fakeTextResponse('72019'),
+    ]);
+
+    agent(tools: [new FixedNumberGenerator])->prompt(
+        'Give me a random number',
+        provider: 'anthropic',
+    );
+
+    Http::assertSent(function ($request) {
+        $tool = collect($request->data()['tools'] ?? [])
+            ->firstWhere('name', 'FixedNumberGenerator');
+
+        return $tool['strict'] === true
+            && $tool['input_schema']['type'] === 'object'
+            && (array) $tool['input_schema']['properties'] === [];
     });
 });
