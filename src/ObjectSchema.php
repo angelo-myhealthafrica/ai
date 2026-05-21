@@ -28,31 +28,38 @@ class ObjectSchema extends Schema
      */
     public function toSchema(): array
     {
-        return static::disableAdditionalProperties(parent::toSchema());
+        return static::normalize(parent::toSchema());
     }
 
     /**
-     * Recursively set "additionalProperties" to false on all object nodes.
+     * Recursively normalize the schema for strict grammar compilers
+     * (set additionalProperties:false on objects, and add null to enum values on nullable union types).
      *
      * @param  array<string, mixed>  $schema
      * @return array<string, mixed>
      */
-    protected static function disableAdditionalProperties(array $schema): array
+    protected static function normalize(array $schema): array
     {
         $type = $schema['type'] ?? null;
+
+        if (is_array($type) && in_array('null', $type, true)
+            && isset($schema['enum']) && is_array($schema['enum'])
+            && ! in_array(null, $schema['enum'], true)) {
+            $schema['enum'][] = null;
+        }
 
         if ($type === 'object' || (is_array($type) && in_array('object', $type))) {
             $schema['additionalProperties'] = false;
 
             foreach ($schema['properties'] ?? [] as $key => $property) {
                 if (is_array($property)) {
-                    $schema['properties'][$key] = static::disableAdditionalProperties($property);
+                    $schema['properties'][$key] = static::normalize($property);
                 }
             }
         }
 
         if (is_array($schema['items'] ?? null)) {
-            $schema['items'] = static::disableAdditionalProperties($schema['items']);
+            $schema['items'] = static::normalize($schema['items']);
         }
 
         return $schema;
