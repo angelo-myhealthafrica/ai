@@ -105,6 +105,7 @@ test('tool with Strict attribute sends strict true to anthropic', function () {
 
         return $tool['strict'] === true
             && $tool['input_schema']['type'] === 'object'
+            && $tool['input_schema']['additionalProperties'] === false
             && array_key_exists('min', (array) $tool['input_schema']['properties'])
             && array_key_exists('max', (array) $tool['input_schema']['properties'])
             && in_array('min', $tool['input_schema']['required'], true)
@@ -145,6 +146,8 @@ test('tool with empty schema and Strict attribute still sends strict true', func
 
         return $tool['strict'] === true
             && $tool['input_schema']['type'] === 'object'
-            && (array) $tool['input_schema']['properties'] === [];
+            && $tool['input_schema']['additionalProperties'] === false
+            && (array) $tool['input_schema']['properties'] === []
+            && $tool['input_schema']['required'] === [];
     });
 });
